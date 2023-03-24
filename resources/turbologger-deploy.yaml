@@ -14,8 +14,8 @@ spec:
   template:
     metadata:
       annotations:
-        ad.datadoghq.com/bashlogger-one.logs: '[{"source":"bash","service":"logging-app-turbo-a"}]'
-        ad.datadoghq.com/bashlogger-two.logs: '[{"source":"bash","service":"logging-app-turbo-a"}]'
+        ad.datadoghq.com/bashlogger-one.logs: '[{"source":"bash-local","service":"logging-app-turbo-a"}]'
+        ad.datadoghq.com/bashlogger-two.logs: '[{"source":"bash-local","service":"logging-app-turbo-a"}]'
       labels:
         app: logging-app-turbo-a
     spec:

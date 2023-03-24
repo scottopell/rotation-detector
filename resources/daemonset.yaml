@@ -11,6 +11,8 @@ spec:
       name: rotation-detector
   template:
     metadata:
+      annotations:
+        ad.datadoghq.com/rotation-detector.logs: '[{"source":"golang","service":"rotation-detector"}]'
       labels:
         name: rotation-detector
     spec:

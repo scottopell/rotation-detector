@@ -26,3 +26,7 @@ Available as a docker image at `docker.io/scottopelldd/rotation-detector`
 $ docker run -v /tmp/logs:/var/log/pods docker.io/scottopelldd/rotation-detector:latest
 ```
 
+### K8S
+Example daemonset deployment available at `resources/daemonset.yaml`
+
+
