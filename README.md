@@ -19,4 +19,10 @@ Usage of ./rotation-detector:
 Scans the specified directories for files that have rotated (think logrotate)
 ```
 
+### Docker
+Available as a docker image at `docker.io/scottopelldd/rotation-detector`
+
+```
+$ docker run -v /tmp/logs:/var/log/pods docker.io/scottopelldd/rotation-detector:latest
+```
 

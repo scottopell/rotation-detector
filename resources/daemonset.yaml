@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rotation-detector
+  namespace: default
+  labels:
+    k8s-app: rotation-detection-logger
+spec:
+  selector:
+    matchLabels:
+      name: rotation-detector
+  template:
+    metadata:
+      labels:
+        name: rotation-detector
+    spec:
+      tolerations:
+     ## these tolerations are to have the daemonset runnable on control plane nodes
+     ## remove them if your control plane nodes should not run pods
+     #- key: node-role.kubernetes.io/control-plane
+     #  operator: Exists
+     #  effect: NoSchedule
+     #- key: node-role.kubernetes.io/master
+     #  operator: Exists
+     #  effect: NoSchedule
+      containers:
+      - name: rotation-detector
+        image: docker.io/scottopelldd/rotation-detector:latest
+        resources:
+          limits:
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - name: varlogpod
+          mountPath: /var/log/pods
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlogpod
+        hostPath:
+          path: /var/log/pods

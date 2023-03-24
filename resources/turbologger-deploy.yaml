@@ -1,0 +1,33 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: logging-app-turbo-a
+  name: logging-app-turbo-a-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logging-app-turbo-a
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/bashlogger-one.logs: '[{"source":"bash","service":"logging-app-turbo-a"}]'
+        ad.datadoghq.com/bashlogger-two.logs: '[{"source":"bash","service":"logging-app-turbo-a"}]'
+      labels:
+        app: logging-app-turbo-a
+    spec:
+      containers:
+      - image: bash
+        imagePullPolicy: Always
+        name: bashlogger-one
+        command: ['bash', '-c', 'while true; do echo "$(date -Ins) $(tr -dc A-Za-z0-9 </dev/urandom | head -c 120)"; sleep 0.03; done']
+        resources: {}
+      - image: bash
+        imagePullPolicy: Always
+        name: bashlogger-two
+        command: ['bash', '-c', 'while true; do echo "$(date -Ins) $(tr -dc A-Za-z0-9 </dev/urandom | head -c 120)"; sleep 0.03; done']
+        resources: {}
+      restartPolicy: Always
