@@ -5,11 +5,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/spf13/pflag"
+	"golang.org/x/exp/slog"
 )
 
 type fsInfo struct {
@@ -42,7 +44,7 @@ func monitor(monitoredFiles map[string]fsInfo, dir string) {
 		currentStat, err := currentOsFile.Stat()
 		if err != nil {
 			// Opened file but couldn't stat the file, odd. Log as this is unusual
-			log.Printf("Opened %q but stat failed with err: %v\n", absFilePath, err)
+			slog.Warn("Opened file but stat failed with err.", "FileName", absFilePath, "Err", err)
 			continue
 		}
 		if currentStat.IsDir() {
@@ -60,7 +62,7 @@ func monitor(monitoredFiles map[string]fsInfo, dir string) {
 
 			oldFileWentAway := err != nil
 			if oldFileWentAway {
-				log.Printf("File %q rotated because old file went away. newStatErr: %v\n", absFilePath, err)
+				slog.Warn("File rotated because old file went away", "FileName", absFilePath, "NewStatErr", err)
 				monitoredFiles[absFilePath] = currentFsInfo
 				continue
 			}
@@ -69,9 +71,9 @@ func monitor(monitoredFiles map[string]fsInfo, dir string) {
 			truncated := currentStat.Size() < entry.size
 
 			if recreated {
-				log.Printf("File %q rotated due to recreation, stat of prev file: %+v, stat of current file: %+v\n", absFilePath, prevFileStat, currentStat)
+				slog.Warn("File rotated due to recreation", "FileName", absFilePath, "PrevStatResult", fmt.Sprintf("%+v", prevFileStat), "CurrentStatResult", fmt.Sprintf("%+v", currentStat))
 			} else if truncated {
-				log.Printf("File %q rotated due to truncation, lastSize: %d, currentSize: %d\n", absFilePath, entry.size, currentStat.Size())
+				slog.Warn("File rotated due to truncation", "FileName", absFilePath, "LastSize", entry.size, "CurrentSize", currentStat.Size())
 			}
 
 		}
@@ -80,20 +82,42 @@ func monitor(monitoredFiles map[string]fsInfo, dir string) {
 	}
 }
 
+func logArgToSlogLevel(level string) slog.Level {
+	switch level {
+	case "info":
+		return slog.LevelInfo
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 func main() {
-	pflag.ErrHelp = fmt.Errorf("Scans the specified directories for files that have rotated (think logrotate)")
+	pflag.ErrHelp = fmt.Errorf("Watches the specified directories for files that have rotated (think logrotate)")
 	dirGlobs := pflag.StringArrayP("directories", "d", []string{"/var/log/pods"}, "Directories to monitor. Will recursively look for any files, conceptually adds '**/*'.")
 	scanPeriod := pflag.DurationP("period", "p", time.Second, "How long to sleep between scans (seconds)")
+	logLevel := pflag.StringP("logLevel", "l", "", "DEBUG | INFO | WARN | ERROR")
 
 	pflag.Parse()
 
-	log.Printf("Monitoring directories: %v", dirGlobs)
+	opts := slog.HandlerOptions{
+		Level: logArgToSlogLevel(strings.ToLower(*logLevel)),
+	}
+	logger := slog.New(opts.NewTextHandler(os.Stdout))
+	slog.SetDefault(logger)
+
+	slog.Info("Watching the following directories", "MonitoredGlobs", dirGlobs)
 	monitoredFiles := make(map[string]fsInfo)
 	for {
 		for _, glob := range *dirGlobs {
 			monitor(monitoredFiles, filepath.Join(glob, "/**/*"))
 		}
-		log.Printf("Finished scan, currently monitoring %d files.\n", len(monitoredFiles))
+		slog.Debug("Finished scan.", "MonitoredFiles", len(monitoredFiles))
 		time.Sleep(*scanPeriod)
 	}
 }
